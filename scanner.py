@@ -94,24 +94,26 @@ def check_dropping_odds(odds_list, current_total_score, threshold=0.2):
             drop_under = open_under - curr_under if open_under > 0 and curr_under > 0 else 0
             
             if drop_over >= threshold and drop_over > best_drop_val:
-                best_drop_val = drop_over
-                best_drop = {
-                    'line': line_val,
-                    'type': 'Over',
-                    'opening': open_over,
-                    'current': curr_over,
-                    'drop': drop_over
-                }
+                if 1.80 <= curr_over <= 2.10:
+                    best_drop_val = drop_over
+                    best_drop = {
+                        'line': line_val,
+                        'type': 'Over',
+                        'opening': open_over,
+                        'current': curr_over,
+                        'drop': drop_over
+                    }
                 
             if drop_under >= threshold and drop_under > best_drop_val:
-                best_drop_val = drop_under
-                best_drop = {
-                    'line': line_val,
-                    'type': 'Under',
-                    'opening': open_under,
-                    'current': curr_under,
-                    'drop': drop_under
-                }
+                if 1.80 <= curr_under <= 2.10:
+                    best_drop_val = drop_under
+                    best_drop = {
+                        'line': line_val,
+                        'type': 'Under',
+                        'opening': open_under,
+                        'current': curr_under,
+                        'drop': drop_under
+                    }
         except:
             pass
             
