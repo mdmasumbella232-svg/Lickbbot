@@ -31,7 +31,10 @@ def get_finished_games(sport_id):
     url = f"https://inforadar.live/api/v1/finished_games/?sport_id={sport_id}&page=1&per_page=100"
     try:
         r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
-        return r.json()
+        data = r.json()
+        if isinstance(data, dict):
+            return data.get('results', [])
+        return data  # fallback if already a list
     except Exception as e:
         print(f"Error fetching finished games: {e}")
         return []
