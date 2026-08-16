@@ -55,7 +55,7 @@ def get_total_score(score_str):
     except:
         return 0
 
-def check_dropping_odds(odds_list, current_total_score, threshold=0.2):
+def check_dropping_odds(odds_list, current_total_score, sport_name='soccer', threshold=0.2):
     # odds_list is assumed to be sorted descending by time (newest first)
     
     # Identify CURRENTLY ACTIVE lines by looking at the 10 most recent updates
@@ -110,25 +110,35 @@ def check_dropping_odds(odds_list, current_total_score, threshold=0.2):
             
             if drop_over >= threshold and drop_over > best_drop_val:
                 if 1.80 <= curr_over <= 2.10:
-                    best_drop_val = drop_over
-                    best_drop = {
-                        'line': line_val,
-                        'type': 'Over',
-                        'opening': open_over,
-                        'current': curr_over,
-                        'drop': drop_over
-                    }
+                    is_valid = True
+                    if sport_name == 'soccer' and line_val % 1 != 0:
+                        is_valid = False # Soccer Over must be 2.0, 3.0, 4.0...
+                        
+                    if is_valid:
+                        best_drop_val = drop_over
+                        best_drop = {
+                            'line': line_val,
+                            'type': 'Over',
+                            'opening': open_over,
+                            'current': curr_over,
+                            'drop': drop_over
+                        }
                 
             if drop_under >= threshold and drop_under > best_drop_val:
                 if 1.80 <= curr_under <= 2.10:
-                    best_drop_val = drop_under
-                    best_drop = {
-                        'line': line_val,
-                        'type': 'Under',
-                        'opening': open_under,
-                        'current': curr_under,
-                        'drop': drop_under
-                    }
+                    is_valid = True
+                    if sport_name == 'soccer' and line_val % 1 != 0.5:
+                        is_valid = False # Soccer Under must be 2.5, 3.5, 4.5...
+                        
+                    if is_valid:
+                        best_drop_val = drop_under
+                        best_drop = {
+                            'line': line_val,
+                            'type': 'Under',
+                            'opening': open_under,
+                            'current': curr_under,
+                            'drop': drop_under
+                        }
         except:
             pass
             
@@ -180,7 +190,7 @@ def scan_games():
                 if market.get('name') == 'Total':
                     history = market.get('odds', [])
                     current_total_score = get_total_score(score)
-                    drop = check_dropping_odds(history, current_total_score)
+                    drop = check_dropping_odds(history, current_total_score, sport_name)
                     if drop:
                             alerts.append({
                                 'event_id': event_id,
