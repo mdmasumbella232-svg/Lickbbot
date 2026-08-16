@@ -112,6 +112,7 @@ def scan_games():
             event_id = game.get('id')
             home = game.get('home', {}).get('name', 'Unknown')
             away = game.get('away', {}).get('name', 'Unknown')
+            league = game.get('league', {}).get('name', 'Unknown League')
             score = game.get('scores', '0-0')
             time_obj = game.get('time', {})
             game_time = time_obj.get('tm', 0)
@@ -132,6 +133,7 @@ def scan_games():
                             alerts.append({
                                 'event_id': event_id,
                                 'sport': sport_name,
+                                'league': league,
                                 'match': f"{home} vs {away}",
                                 'score': score,
                                 'time': f"{game_time}'",

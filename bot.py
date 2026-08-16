@@ -54,6 +54,7 @@ async def run_bot():
             alerts = scan_games()
             for alert in alerts:
                 sport = alert['sport']
+                league = alert.get('league', 'Unknown League')
                 match = alert['match']
                 score = alert['score']
                 time_val = alert['time']
@@ -76,7 +77,8 @@ async def run_bot():
                     
                     msg = (
                         f"🚨 **Dropping Odds Alert!** 🚨\n\n"
-                        f"🏆 **Sport:** {sport}\n"
+                        f"🏆 **Sport:** {sport.capitalize()}\n"
+                        f"🌍 **League:** {league}\n"
                         f"⚽ **Match:** {match}\n"
                         f"⏱ Time: {time_val}  |  Score: {score}\n\n"
                         f"📉 **Market:** Total {line} ({type_})\n"
