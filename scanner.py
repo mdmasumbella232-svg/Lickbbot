@@ -1,16 +1,27 @@
 import requests
 import time
 
+import random
+
+USER_AGENTS = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Safari/605.1.15',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1'
+]
+
 def get_live_games(sport_id):
     url = f"https://inforadar.live/api/v1/live_games?sport_id={sport_id}&page=1&per_page=100"
     for attempt in range(3):
         try:
-            r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=30)
+            ua = random.choice(USER_AGENTS)
+            r = requests.get(url, headers={'User-Agent': ua, 'Accept': 'application/json, text/plain, */*'}, timeout=30)
             data = r.json()
             if data.get("success") == 1:
                 return data.get("results", [])
         except requests.exceptions.Timeout:
-            pass # Try again
+            time.sleep(2) # Wait a bit before retrying
         except Exception as e:
             print(f"Error fetching live games for sport {sport_id}: {e}")
             break
@@ -20,10 +31,11 @@ def get_game_odds(sport_name, event_id):
     url = f"https://inforadar.live/api/v1/{sport_name}/game/odds?event_id={event_id}&odds_market=8,5,6,1,2,3,4"
     for attempt in range(2):
         try:
-            r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=15)
+            ua = random.choice(USER_AGENTS)
+            r = requests.get(url, headers={'User-Agent': ua, 'Accept': 'application/json, text/plain, */*'}, timeout=15)
             return r.json()
         except requests.exceptions.Timeout:
-            pass # Try again
+            time.sleep(1) # Wait a bit before retrying
         except Exception as e:
             print(f"Error fetching odds for {event_id}: {e}")
             break
@@ -139,6 +151,9 @@ def scan_games():
             # Skip games that are too late to bet on
             if not is_time_ok(sport_name, time_obj):
                 continue
+            
+            # Avoid hammering the API
+            time.sleep(0.5)
             
             odds_data = get_game_odds(sport_name, event_id)
             if not isinstance(odds_data, list):
