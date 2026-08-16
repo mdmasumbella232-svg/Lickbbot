@@ -34,20 +34,28 @@ def get_finished_games(sport_id, pages=3):
     results = []
     for page in range(1, pages + 1):
         url = f"https://inforadar.live/api/v1/finished_games/?sport_id={sport_id}&page={page}&per_page=100"
-        try:
-            r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=10)
-            data = r.json()
-            if isinstance(data, dict):
-                page_results = data.get('results', [])
-                results.extend(page_results)
-                # Stop early if this page had fewer than 100 results (last page)
-                if len(page_results) < 100:
-                    break
-            elif isinstance(data, list):
-                results.extend(data)
+        fetched = False
+        for attempt in range(3):  # up to 3 retries per page
+            try:
+                r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=30)
+                data = r.json()
+                if isinstance(data, dict):
+                    page_results = data.get('results', [])
+                    results.extend(page_results)
+                    if len(page_results) < 100:
+                        return results  # last page reached
+                elif isinstance(data, list):
+                    results.extend(data)
+                    return results
+                fetched = True
                 break
-        except Exception as e:
-            logger.error(f"Error fetching finished games page {page}: {e}")
+            except requests.exceptions.Timeout:
+                logger.warning(f"Timeout fetching finished games page {page}, attempt {attempt+1}/3")
+            except Exception as e:
+                logger.error(f"Error fetching finished games page {page}: {e}")
+                break
+        if not fetched:
+            logger.error(f"Skipping page {page} after retries.")
             break
     return results
 
