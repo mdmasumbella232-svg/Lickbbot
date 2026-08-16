@@ -3,22 +3,30 @@ import time
 
 def get_live_games(sport_id):
     url = f"https://inforadar.live/api/v1/live_games?sport_id={sport_id}&page=1&per_page=100"
-    try:
-        r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
-        data = r.json()
-        if data.get("success") == 1:
-            return data.get("results", [])
-    except Exception as e:
-        print(f"Error fetching live games for sport {sport_id}: {e}")
+    for attempt in range(3):
+        try:
+            r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=30)
+            data = r.json()
+            if data.get("success") == 1:
+                return data.get("results", [])
+        except requests.exceptions.Timeout:
+            pass # Try again
+        except Exception as e:
+            print(f"Error fetching live games for sport {sport_id}: {e}")
+            break
     return []
 
 def get_game_odds(sport_name, event_id):
     url = f"https://inforadar.live/api/v1/{sport_name}/game/odds?event_id={event_id}&odds_market=8,5,6,1,2,3,4"
-    try:
-        r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
-        return r.json()
-    except Exception as e:
-        print(f"Error fetching odds for {event_id}: {e}")
+    for attempt in range(2):
+        try:
+            r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=15)
+            return r.json()
+        except requests.exceptions.Timeout:
+            pass # Try again
+        except Exception as e:
+            print(f"Error fetching odds for {event_id}: {e}")
+            break
     return []
 
 def is_standard_line(line_val):
