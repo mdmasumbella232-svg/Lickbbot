@@ -109,13 +109,14 @@ def scan_games():
                     history = market.get('odds', [])
                     drop = check_dropping_odds(history)
                     if drop:
-                        alerts.append({
-                            'sport': sport_name.capitalize(),
-                            'match': f"{home} vs {away}",
-                            'score': score,
-                            'time': f"{game_time}'",
-                            'drop_info': drop
-                        })
+                            alerts.append({
+                                'event_id': event_id,
+                                'sport': sport_name,
+                                'match': f"{home} vs {away}",
+                                'score': score,
+                                'time': f"{game_time}'",
+                                'drop_info': drop
+                            })
     return alerts
 
 if __name__ == "__main__":

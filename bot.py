@@ -2,6 +2,7 @@ import asyncio
 import logging
 from telegram import Bot
 from scanner import scan_games
+import tracker
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -26,6 +27,28 @@ async def run_bot():
         return
 
     while True:
+        state = tracker.load_state()
+        
+        if state['active_bet']:
+            logger.info("Bot is locked. Checking if active bet has settled...")
+            settlement = tracker.check_active_bet(state)
+            if settlement:
+                res_msg = (
+                    f"✅ **Bet Settled: {settlement['result']}**\n\n"
+                    f"⚽ {settlement['match']}\n"
+                    f"Final Total Score: {settlement['total_score']} (Line was {settlement['line']} {settlement['type']})\n\n"
+                    f"{settlement['stats_str']}"
+                )
+                try:
+                    await bot.send_message(chat_id=CHAT_ID, text=res_msg, parse_mode='Markdown')
+                except Exception as e:
+                    logger.error(f"Error sending settlement msg: {e}")
+            else:
+                logger.info("Bet not settled yet.")
+            
+            await asyncio.sleep(180)
+            continue
+            
         logger.info("Scanning games...")
         try:
             alerts = scan_games()
@@ -48,6 +71,9 @@ async def run_bot():
                 if alert_key not in alerted_events:
                     alerted_events.add(alert_key)
                     
+                    
+                    dashboard_url = f"https://inforadar.live/#/dashboard/{sport.lower()}/game/{alert['event_id']}"
+                    
                     msg = (
                         f"🚨 **Dropping Odds Alert!** 🚨\n\n"
                         f"🏆 **Sport:** {sport}\n"
@@ -56,11 +82,24 @@ async def run_bot():
                         f"📉 **Market:** Total {line} ({type_})\n"
                         f"🔓 **Opening Odds:** {opening:.2f}\n"
                         f"🔒 **Current Odds:** {current:.2f}\n"
-                        f"🔻 **Drop:** {drop_amt:.2f}\n"
+                        f"🔻 **Drop:** {drop_amt:.2f}\n\n"
+                        f"🔗 [Open Match]({dashboard_url}), Status: Bot is locked. No new picks until this bet settles.\n\n"
+                        f"{tracker.format_stats(state)}"
                     )
                     
-                    await bot.send_message(chat_id=CHAT_ID, text=msg, parse_mode='Markdown')
-                    logger.info(f"Alert sent for {match}")
+                    try:
+                        await bot.send_message(chat_id=CHAT_ID, text=msg, parse_mode='Markdown', disable_web_page_preview=True)
+                        logger.info(f"Alert sent for {match}")
+                        tracker.lock_bot_with_bet(state, {
+                            'event_id': alert['event_id'],
+                            'sport': sport,
+                            'match': match,
+                            'line': line,
+                            'type': type_
+                        })
+                        break # Exit scanning loop, wait for next cycle to check settlement
+                    except Exception as e:
+                        logger.error(f"Error sending alert: {e}")
                     
         except Exception as e:
             logger.error(f"Error during scan: {e}")
