@@ -86,6 +86,22 @@ def check_dropping_odds(odds_list, threshold=0.2):
             
     return best_drop
 
+# Time limits – only alert when a bet can realistically still be placed
+# Soccer    : game_time must be <= MAX_SOCCER_MINUTE
+# Basketball: time_obj['md'] is the quarter (1-4), alert only up to Q3
+MAX_SOCCER_MINUTE  = 75
+MAX_BASKETBALL_QTR = 3
+
+def is_time_ok(sport_name, time_obj):
+    """Return True only if there is enough game time left to place a bet."""
+    if sport_name == 'soccer':
+        minute = int(time_obj.get('tm', 0) or 0)
+        return minute <= MAX_SOCCER_MINUTE
+    elif sport_name == 'basketball':
+        quarter = int(time_obj.get('md', 0) or 0)
+        return quarter <= MAX_BASKETBALL_QTR
+    return True
+
 def scan_games():
     alerts = []
     sports = {1: 'soccer', 18: 'basketball'}
@@ -99,6 +115,10 @@ def scan_games():
             score = game.get('scores', '0-0')
             time_obj = game.get('time', {})
             game_time = time_obj.get('tm', 0)
+
+            # Skip games that are too late to bet on
+            if not is_time_ok(sport_name, time_obj):
+                continue
             
             odds_data = get_game_odds(sport_name, event_id)
             if not isinstance(odds_data, list):

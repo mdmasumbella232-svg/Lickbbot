@@ -78,7 +78,7 @@ async def run_bot():
                         f"🚨 **Dropping Odds Alert!** 🚨\n\n"
                         f"🏆 **Sport:** {sport}\n"
                         f"⚽ **Match:** {match}\n"
-                        f"⏱️ **Time:** {time_val} | Score: {score}\n\n"
+                        f"⏱ Time: {time_val}  |  Score: {score}\n\n"
                         f"📉 **Market:** Total {line} ({type_})\n"
                         f"🔓 **Opening Odds:** {opening:.2f}\n"
                         f"🔒 **Current Odds:** {current:.2f}\n"
