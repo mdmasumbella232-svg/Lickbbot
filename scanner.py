@@ -56,8 +56,19 @@ def get_total_score(score_str):
         return 0
 
 def check_dropping_odds(odds_list, current_total_score, threshold=0.2):
-    # odds_list is assumed to be sorted descending by time (newest first), which is typical for this API
-    # Let's group by line (row2)
+    # odds_list is assumed to be sorted descending by time (newest first)
+    
+    # Identify CURRENTLY ACTIVE lines by looking at the 10 most recent updates
+    active_lines = set()
+    for entry in odds_list[:10]:
+        line = entry.get('row2')
+        if line is not None and is_standard_line(line):
+            try:
+                active_lines.add(float(line))
+            except:
+                pass
+
+    # Group by line (row2)
     lines = {}
     for entry in odds_list:
         line = entry.get('row2')
@@ -67,6 +78,10 @@ def check_dropping_odds(odds_list, current_total_score, threshold=0.2):
         line_val = float(line)
         # Skip mathematically impossible or already resolved lines
         if line_val <= current_total_score:
+            continue
+            
+        # Skip dead lines that the bookmaker is no longer offering
+        if line_val not in active_lines:
             continue
 
         if line_val not in lines:
