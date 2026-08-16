@@ -1,8 +1,10 @@
 import json
 import os
+import logging
 import requests
 
 STATS_FILE = 'stats.json'
+logger = logging.getLogger(__name__)
 
 def load_state():
     if os.path.exists(STATS_FILE):
@@ -27,40 +29,60 @@ def format_stats(state):
     hit_rate = (w / bets * 100) if bets > 0 else 0.0
     return f"📊 W{w} / L{l} / D{d} | Bets: {bets} | Hit: {hit_rate:.1f}% | Streak: {streak} | BestW: {best_w} | BestL: {best_l}"
 
-def get_finished_games(sport_id):
-    url = f"https://inforadar.live/api/v1/finished_games/?sport_id={sport_id}&page=1&per_page=100"
-    try:
-        r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
-        data = r.json()
-        if isinstance(data, dict):
-            return data.get('results', [])
-        return data  # fallback if already a list
-    except Exception as e:
-        print(f"Error fetching finished games: {e}")
-        return []
+def get_finished_games(sport_id, pages=3):
+    """Fetch finished games across multiple pages to avoid missing the target game."""
+    results = []
+    for page in range(1, pages + 1):
+        url = f"https://inforadar.live/api/v1/finished_games/?sport_id={sport_id}&page={page}&per_page=100"
+        try:
+            r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=10)
+            data = r.json()
+            if isinstance(data, dict):
+                page_results = data.get('results', [])
+                results.extend(page_results)
+                # Stop early if this page had fewer than 100 results (last page)
+                if len(page_results) < 100:
+                    break
+            elif isinstance(data, list):
+                results.extend(data)
+                break
+        except Exception as e:
+            logger.error(f"Error fetching finished games page {page}: {e}")
+            break
+    return results
 
 def check_active_bet(state):
     bet = state.get('active_bet')
     if not bet:
         return None
-        
-    sport_id = 1 if bet['sport'].lower() == 'soccer' else 18
+
+    target_id = str(bet['event_id'])
+    sport_name = bet['sport'].lower()
+    sport_id = 1 if sport_name == 'soccer' else 18
+
+    logger.info(f"Checking settlement for event_id={target_id} ({bet['match']})")
     finished_games = get_finished_games(sport_id)
-    
+    logger.info(f"Fetched {len(finished_games)} finished games for sport_id={sport_id}")
+
     for game in finished_games:
-        if str(game.get('id')) == str(bet['event_id']):
+        game_id = str(game.get('id', ''))
+        if game_id == target_id:
             scores = game.get('scores', '0-0').split('-')
             try:
                 total_score = int(scores[0]) + int(scores[1])
+                logger.info(f"Match found! Final score: {game.get('scores')} -> total={total_score}")
                 return resolve_bet(state, bet, total_score)
-            except:
-                pass
+            except Exception as e:
+                logger.error(f"Error parsing score: {e}")
+                return None
+
+    logger.info(f"event_id={target_id} not found in finished games yet.")
     return None
 
 def resolve_bet(state, bet, total_score):
     line = float(bet['line'])
     type_ = bet['type']
-    
+
     result = 'Push'
     if type_ == 'Over':
         if total_score > line: result = 'Win'
@@ -81,11 +103,11 @@ def resolve_bet(state, bet, total_score):
         state['best_l'] = min(state['best_l'], state['streak'])
     else:
         state['d'] += 1
-        # push doesn't affect streak usually
+        # push doesn't affect streak
 
     state['active_bet'] = None
     save_state(state)
-    
+
     return {
         'result': result,
         'match': bet['match'],
