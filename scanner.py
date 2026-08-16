@@ -28,7 +28,14 @@ def is_standard_line(line_val):
     except:
         return False
 
-def check_dropping_odds(odds_list, threshold=0.2):
+def get_total_score(score_str):
+    try:
+        parts = score_str.split('-')
+        return int(parts[0]) + int(parts[1])
+    except:
+        return 0
+
+def check_dropping_odds(odds_list, current_total_score, threshold=0.2):
     # odds_list is assumed to be sorted descending by time (newest first), which is typical for this API
     # Let's group by line (row2)
     lines = {}
@@ -38,6 +45,10 @@ def check_dropping_odds(odds_list, threshold=0.2):
             continue
             
         line_val = float(line)
+        # Skip mathematically impossible or already resolved lines
+        if line_val <= current_total_score:
+            continue
+
         if line_val not in lines:
             lines[line_val] = []
         lines[line_val].append(entry)
@@ -128,7 +139,8 @@ def scan_games():
             for market in odds_data:
                 if market.get('name') == 'Total':
                     history = market.get('odds', [])
-                    drop = check_dropping_odds(history)
+                    current_total_score = get_total_score(score)
+                    drop = check_dropping_odds(history, current_total_score)
                     if drop:
                             alerts.append({
                                 'event_id': event_id,
