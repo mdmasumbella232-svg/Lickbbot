@@ -89,19 +89,25 @@ async def run_bot():
                         f"{tracker.format_stats(state)}"
                     )
                     
-                    try:
-                        await bot.send_message(chat_id=CHAT_ID, text=msg, parse_mode='Markdown', disable_web_page_preview=True)
-                        logger.info(f"Alert sent for {match}")
-                        tracker.lock_bot_with_bet(state, {
-                            'event_id': alert['event_id'],
-                            'sport': sport,
-                            'match': match,
-                            'line': line,
-                            'type': type_
-                        })
+                    sent = False
+                    for attempt in range(3):
+                        try:
+                            await bot.send_message(chat_id=CHAT_ID, text=msg, parse_mode='Markdown', disable_web_page_preview=True)
+                            logger.info(f"Alert sent for {match}")
+                            tracker.lock_bot_with_bet(state, {
+                                'event_id': alert['event_id'],
+                                'sport': sport,
+                                'match': match,
+                                'line': line,
+                                'type': type_
+                            })
+                            sent = True
+                            break
+                        except Exception as e:
+                            logger.error(f"Error sending alert (attempt {attempt+1}): {e}")
+                            await asyncio.sleep(5)
+                    if sent:
                         break # Exit scanning loop, wait for next cycle to check settlement
-                    except Exception as e:
-                        logger.error(f"Error sending alert: {e}")
                     
         except Exception as e:
             logger.error(f"Error during scan: {e}")
