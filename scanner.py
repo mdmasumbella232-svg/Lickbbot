@@ -35,11 +35,11 @@ def get_game_odds(sport_name, event_id):
             r = requests.get(url, headers={'User-Agent': ua, 'Accept': 'application/json, text/plain, */*'}, timeout=15)
             return r.json()
         except requests.exceptions.Timeout:
-            time.sleep(1) # Wait a bit before retrying
+            time.sleep(1)
         except Exception as e:
             print(f"Error fetching odds for {event_id}: {e}")
             break
-    return []
+    return None  # Return None on failure (not empty list) to signal a timeout
 
 def is_standard_line(line_val):
     try:
@@ -153,6 +153,8 @@ def is_time_ok(sport_name, time_obj):
 def scan_games():
     alerts = []
     sports = {1: 'soccer', 18: 'basketball'}
+    consecutive_failures = 0
+    MAX_FAILURES = 3  # Circuit breaker: abort scan if 3 games in a row time out
     
     for sport_id, sport_name in sports.items():
         games = get_live_games(sport_id)
@@ -173,6 +175,17 @@ def scan_games():
             time.sleep(0.5)
             
             odds_data = get_game_odds(sport_name, event_id)
+            
+            if odds_data is None:
+                # A None means timeout/failure, not empty response
+                consecutive_failures += 1
+                if consecutive_failures >= MAX_FAILURES:
+                    print(f"Circuit breaker triggered: {consecutive_failures} consecutive failures. Aborting scan.")
+                    return alerts
+                continue
+            
+            consecutive_failures = 0  # Reset on success
+            
             if not isinstance(odds_data, list):
                 continue
                 
