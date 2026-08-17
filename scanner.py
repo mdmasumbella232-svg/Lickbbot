@@ -57,17 +57,10 @@ def get_total_score(score_str):
 
 def check_dropping_odds(odds_list, current_total_score, sport_name='soccer', threshold=0.15): # sport_name kept for future use
     # odds_list is assumed to be sorted descending by time (newest first)
-    
-    # Only consider lines that appear in the 5 most recent updates (line is still alive)
-    # Using 5 (not more) to avoid picking discontinued/dead lines
-    recent_lines = set()
-    for entry in odds_list[:5]:
-        line = entry.get('row2')
-        if line is not None and is_standard_line(line):
-            try:
-                recent_lines.add(float(line))
-            except:
-                pass
+    if not odds_list:
+        return None
+        
+    latest_update_time = odds_list[0].get('world_time', 0)
 
     # Group all history by line (row2)
     lines = {}
@@ -92,13 +85,15 @@ def check_dropping_odds(odds_list, current_total_score, sport_name='soccer', thr
         if len(history) < 2:
             continue
         
-        # Only process lines the bookmaker is currently offering
-        if line_val not in recent_lines:
-            continue
-            
-        # First element is newest, last element is oldest
         current = history[0]
         opening = history[-1]
+        
+        # Check if this line is dead/stale by comparing its last update time to the market's latest update time.
+        # If the line hasn't been updated within 3 minutes (180 seconds) of the market's freshest update, it's dead.
+        line_time = current.get('world_time', 0)
+        if latest_update_time > 0 and line_time > 0:
+            if latest_update_time - line_time > 180:
+                continue
         
         try:
             curr_over = float(current.get('row1', 0))
