@@ -58,9 +58,10 @@ def get_total_score(score_str):
 def check_dropping_odds(odds_list, current_total_score, sport_name='soccer', threshold=0.15): # sport_name kept for future use
     # odds_list is assumed to be sorted descending by time (newest first)
     
-    # Only consider lines that appear in the 15 most recent updates (line is still alive)
+    # Only consider lines that appear in the 5 most recent updates (line is still alive)
+    # Using 5 (not more) to avoid picking discontinued/dead lines
     recent_lines = set()
-    for entry in odds_list[:15]:
+    for entry in odds_list[:5]:
         line = entry.get('row2')
         if line is not None and is_standard_line(line):
             try:
