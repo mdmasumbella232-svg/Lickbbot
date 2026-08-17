@@ -136,7 +136,7 @@ def check_dropping_odds(odds_list, current_total_score, sport_name='soccer', thr
 
 # Time limits – only alert when a bet can realistically still be placed
 # Soccer    : game_time must be <= MAX_SOCCER_MINUTE
-# Basketball: time_obj['md'] is the quarter (1-4), alert only up to Q3
+# Basketball: quarter must be <= 3 (no Q4)
 MAX_SOCCER_MINUTE  = 75
 MAX_BASKETBALL_QTR = 3
 
@@ -146,7 +146,16 @@ def is_time_ok(sport_name, time_obj):
         minute = int(time_obj.get('tm', 0) or 0)
         return minute <= MAX_SOCCER_MINUTE
     elif sport_name == 'basketball':
-        quarter = int(time_obj.get('md', 0) or 0)
+        # API may use different field names for the quarter/period
+        quarter = (
+            int(time_obj.get('md', 0) or 0) or
+            int(time_obj.get('p', 0) or 0) or
+            int(time_obj.get('period', 0) or 0) or
+            int(time_obj.get('qn', 0) or 0)
+        )
+        # If quarter is unknown (0), block it - better safe than sorry
+        if quarter == 0:
+            return False
         return quarter <= MAX_BASKETBALL_QTR
     return True
 
