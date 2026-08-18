@@ -147,7 +147,8 @@ def is_time_ok(sport_name, time_obj):
             int(time_obj.get('md', 0) or 0) or
             int(time_obj.get('p', 0) or 0) or
             int(time_obj.get('period', 0) or 0) or
-            int(time_obj.get('qn', 0) or 0)
+            int(time_obj.get('qn', 0) or 0) or
+            int(time_obj.get('q', 0) or 0)
         )
         # If quarter is unknown (0), block it - better safe than sorry
         if quarter == 0:
