@@ -62,6 +62,17 @@ def check_dropping_odds(odds_list, current_total_score, sport_name='soccer', thr
         
     latest_update_time = odds_list[0].get('world_time', 0)
 
+    # The absolute newest market update gives us the true current line
+    main_line = None
+    for entry in odds_list:
+        line = entry.get('row2')
+        if line is not None and is_standard_line(line):
+            main_line = float(line)
+            break
+            
+    if main_line is None or main_line <= current_total_score:
+        return None
+
     # Group all history by line (row2)
     lines = {}
     for entry in odds_list:
@@ -70,8 +81,8 @@ def check_dropping_odds(odds_list, current_total_score, sport_name='soccer', thr
             continue
             
         line_val = float(line)
-        # Skip mathematically impossible or already resolved lines
-        if line_val <= current_total_score:
+        # ONLY track the absolute newest market line
+        if line_val != main_line:
             continue
 
         if line_val not in lines:
