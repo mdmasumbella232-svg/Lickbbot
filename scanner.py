@@ -89,10 +89,10 @@ def check_dropping_odds(odds_list, current_total_score, sport_name='soccer', thr
         opening = history[-1]
         
         # Check if this line is dead/stale by comparing its last update time to the market's latest update time.
-        # If the line hasn't been updated within 3 minutes (180 seconds) of the market's freshest update, it's dead.
+        # If the line hasn't been updated within 15 seconds of the market's freshest update, it's dead (e.g., abandoned after a goal).
         line_time = current.get('world_time', 0)
         if latest_update_time > 0 and line_time > 0:
-            if latest_update_time - line_time > 180:
+            if latest_update_time - line_time > 15:
                 continue
         
         try:
