@@ -55,7 +55,7 @@ def get_total_score(score_str):
     except:
         return 0
 
-def check_dropping_odds(odds_list, current_total_score, sport_name='soccer', threshold=0.15): # sport_name kept for future use
+def check_dropping_odds(odds_list, current_total_score, sport_name='soccer', threshold=0.15, game_time=0):
     # odds_list is assumed to be sorted descending by time (newest first)
     if not odds_list:
         return None
@@ -128,14 +128,23 @@ def check_dropping_odds(odds_list, current_total_score, sport_name='soccer', thr
                 
             if drop_under >= threshold and drop_under > best_drop_val:
                 if 1.80 <= curr_under <= 2.10:
-                    best_drop_val = drop_under
-                    best_drop = {
-                        'line': line_val,
-                        'type': 'Under',
-                        'opening': open_under,
-                        'current': curr_under,
-                        'drop': drop_under
-                    }
+                    # RULE 1: Margin of Safety (Under line must be >= current score + 1.0)
+                    if line_val >= current_total_score + 1.0:
+                        # RULE 2: No Early Unders (Soccer Unders only allowed after 25th minute)
+                        try:
+                            minute = int(game_time) if game_time else 0
+                        except:
+                            minute = 0
+                            
+                        if sport_name != 'soccer' or minute >= 25:
+                            best_drop_val = drop_under
+                            best_drop = {
+                                'line': line_val,
+                                'type': 'Under',
+                                'opening': open_under,
+                                'current': curr_under,
+                                'drop': drop_under
+                            }
         except:
             pass
             
@@ -210,7 +219,7 @@ def scan_games():
                 if market.get('name') == 'Total':
                     history = market.get('odds', [])
                     current_total_score = get_total_score(score)
-                    drop = check_dropping_odds(history, current_total_score, sport_name)
+                    drop = check_dropping_odds(history, current_total_score, sport_name, game_time=game_time)
                     if drop:
                             alerts.append({
                                 'event_id': event_id,
